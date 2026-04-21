@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TV 3.0 — Análise Geracional</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg: #0d0f14;
+  --surface: #13161e;
+  --surface2: #1a1e28;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --blue: #a8c8f8;
+  --blue-dim: #6ea8e8;
+  --blue-bg: rgba(168,200,248,0.08);
+  --blue-bg2: rgba(168,200,248,0.14);
+  --pink: #f4b8d4;
+  --pink-dim: #e090b8;
+  --pink-bg: rgba(244,184,212,0.08);
+  --pink-bg2: rgba(244,184,212,0.14);
+  --mint: #a8e8d4;
+  --mint-bg: rgba(168,232,212,0.08);
+  --text: #e8eaf0;
+  --text2: #8890a4;
+  --text3: #525870;
+  --radius: 14px;
+  --radius-sm: 8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.5}
+
+/* subtle noise texture on body */
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.4}
+
+.wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:0 20px 60px}
+
+/* HEADER */
+.header{padding:48px 0 36px;display:flex;align-items:flex-start;justify-content:space-between;gap:20px;border-bottom:1px solid var(--border);margin-bottom:32px}
+.header-left h1{font-size:26px;font-weight:600;letter-spacing:-0.5px;color:#fff;margin-bottom:6px}
+.header-left p{font-size:13px;color:var(--text2);max-width:480px;line-height:1.6}
+.header-pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.pill{font-size:11px;font-weight:500;padding:4px 10px;border-radius:20px;letter-spacing:.02em}
+.pill-blue{background:var(--blue-bg2);color:var(--blue);border:1px solid rgba(168,200,248,.2)}
+.pill-pink{background:var(--pink-bg2);color:var(--pink);border:1px solid rgba(244,184,212,.2)}
+.pill-mint{background:var(--mint-bg);color:var(--mint);border:1px solid rgba(168,232,212,.2)}
+.header-stats{display:flex;gap:24px;text-align:right;flex-shrink:0}
+.hstat-val{font-size:32px;font-weight:600;letter-spacing:-1px;color:#fff}
+.hstat-label{font-size:11px;color:var(--text3);margin-top:2px;font-family:'DM Mono',monospace;letter-spacing:.04em}
+
+/* SECTION */
+.section{margin-bottom:28px}
+.sec-label{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.sec-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* CARDS */
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px}
+.card-title{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:14px;letter-spacing:.01em}
+
+/* METRIC CARDS */
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px}
+.metric-val{font-size:28px;font-weight:600;letter-spacing:-1px;color:#fff;line-height:1}
+.metric-val.blue{color:var(--blue)}
+.metric-val.pink{color:var(--pink)}
+.metric-val.mint{color:var(--mint)}
+.metric-label{font-size:11px;color:var(--text2);margin-top:6px}
+.metric-sub{font-size:10px;color:var(--text3);margin-top:2px;font-family:'DM Mono',monospace}
+
+/* CHART WRAP */
+.cw{position:relative;width:100%}
+
+/* LEGEND */
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
+.leg-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+
+/* BAR CHART */
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.bar-label{flex-shrink:0;font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-track{flex:1;background:rgba(255,255,255,.05);border-radius:4px;height:12px}
+.bar-fill{height:100%;border-radius:4px;transition:width .3s}
+.bar-val{flex-shrink:0;font-size:12px;font-weight:500;color:var(--text);width:28px;text-align:right;font-family:'DM Mono',monospace}
+
+/* TABLE */
+table.cross{width:100%;border-collapse:collapse;font-size:12px}
+table.cross th{padding:8px 10px;text-align:left;font-weight:500;color:var(--text3);font-size:11px;border-bottom:1px solid var(--border);letter-spacing:.04em}
+table.cross td{padding:8px 10px;border-bottom:1px solid var(--border);color:var(--text2)}
+table.cross td.hi{color:var(--mint);font-weight:600}
+table.cross td.mid{color:var(--blue)}
+table.cross td.lo{color:var(--text3)}
+table.cross tr:last-child td{border-bottom:none}
+
+/* INSIGHT */
+.insight{background:rgba(168,200,248,.05);border:1px solid rgba(168,200,248,.1);border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--text2);margin-top:12px;line-height:1.7}
+.insight.pink{background:rgba(244,184,212,.05);border-color:rgba(244,184,212,.12)}
+.insight strong{color:var(--text);font-weight:500}
+.insight em{color:var(--blue);font-style:normal}
+
+/* FUNNEL */
+.funnel{display:flex;align-items:stretch;gap:0;margin-top:4px}
+.funnel-step{flex:1;background:var(--surface2);border:1px solid var(--border);padding:16px 12px;text-align:center;position:relative}
+.funnel-step:first-child{border-radius:var(--radius) 0 0 var(--radius)}
+.funnel-step:last-child{border-radius:0 var(--radius) var(--radius) 0}
+.funnel-step+.funnel-step{border-left:none}
+.funnel-n{font-size:24px;font-weight:600;letter-spacing:-1px;color:#fff}
+.funnel-pct{font-size:12px;color:var(--blue);font-family:'DM Mono',monospace;margin-top:2px}
+.funnel-lbl{font-size:10px;color:var(--text3);margin-top:6px;line-height:1.4}
+.funnel-arrow{position:absolute;right:-10px;top:50%;transform:translateY(-50%);width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text3);z-index:2}
+
+/* GEN TAG */
+.gen{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:500;padding:3px 8px;border-radius:20px}
+.gen-z{background:var(--blue-bg2);color:var(--blue);border:1px solid rgba(168,200,248,.2)}
+.gen-m{background:var(--pink-bg2);color:var(--pink);border:1px solid rgba(244,184,212,.2)}
+.gen-x{background:var(--mint-bg);color:var(--mint);border:1px solid rgba(168,232,212,.2)}
+
+/* HIGHLIGHT NUMBER */
+.hl{color:var(--blue);font-weight:600}
+.hlp{color:var(--pink);font-weight:600}
+.hlm{color:var(--mint);font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <h1>Análise da Aceitação da TV 3.0</h1>
+    <p>Cruzamento geracional aprofundado — 12 perguntas analíticas sobre comportamento, conhecimento e intenção de adoção entre Gen Z, Millennials e Gen X/Boomer.</p>
+    <div class="header-pills">
+      <span class="pill pill-blue">Gen Z · n=54 · 68%</span>
+      <span class="pill pill-pink">Millennials · n=17 · 22%</span>
+      <span class="pill pill-mint">Gen X/Boomer · n=8 · 10%</span>
+    </div>
+  </div>
+  <div class="header-stats">
+    <div>
+      <div class="hstat-val">79</div>
+      <div class="hstat-label">RESPONDENTES</div>
+    </div>
+    <div>
+      <div class="hstat-val" style="color:var(--blue)">93%</div>
+      <div class="hstat-label">GEN Z ABERTA</div>
+    </div>
+  </div>
+</div>
+
+<!-- Q1 -->
+<div class="section">
+  <div class="sec-label">Q1 · Frequência de consumo de TV aberta por geração</div>
+  <div class="grid g3">
+    <div class="card">
+      <div class="card-title"><span class="gen gen-z">Gen Z</span> · n=54</div>
+      <div class="cw" style="height:160px"><canvas id="q1z" role="img" aria-label="Frequência TV aberta Gen Z"></canvas></div>
+      <div class="legend" id="l1z"></div>
+      <div class="insight"><strong>72%</strong> raramente ou nunca assistem — <em>maior taxa de abandono</em> da TV aberta.</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="gen gen-m">Millennials</span> · n=17</div>
+      <div class="cw" style="height:160px"><canvas id="q1m" role="img" aria-label="Frequência TV aberta Millennials"></canvas></div>
+      <div class="legend" id="l1m"></div>
+      <div class="insight"><strong>77%</strong> raramente/nunca — similar à Gen Z, mas com 0% "todos os dias".</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="gen gen-x">Gen X/Boomer</span> · n=8</div>
+      <div class="cw" style="height:160px"><canvas id="q1o" role="img" aria-label="Frequência TV aberta Gen X"></canvas></div>
+      <div class="legend" id="l1o"></div>
+      <div class="insight"><strong>50%</strong> ainda assistem com regularidade — padrão <em>oposto</em> às gerações mais jovens.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Q2 -->
+<div class="section">
+  <div class="sec-label">Q2 · Preferência de conteúdo por geração</div>
+  <div class="grid g2">
+    <div class="card">
+      <div class="card-title">Distribuição absoluta por geração</div>
+      <div class="cw" style="height:200px"><canvas id="q2" role="img" aria-label="Preferência conteúdo por geração"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">% dentro de cada geração</div>
+      <div style="margin-top:4px">
+        <div style="margin-bottom:12px;font-size:11px;color:var(--text3);font-weight:500">SOB DEMANDA</div>
+        <div class="bar-row"><div class="bar-label" style="width:120px"><span class="gen gen-z">Gen Z</span></div><div class="bar-track"><div class="bar-fill" style="width:68%;background:var(--blue)"></div></div><div class="bar-val">68%</div></div>
+        <div class="bar-row"><div class="bar-label" style="width:120px"><span class="gen gen-m">Millennials</span></div><div class="bar-track"><div class="bar-fill" style="width:82%;background:var(--pink)"></div></div><div class="bar-val">82%</div></div>
+        <div class="bar-row" style="margin-bottom:14px"><div class="bar-label" style="width:120px"><span class="gen gen-x">Gen X/B.</span></div><div class="bar-track"><div class="bar-fill" style="width:25%;background:var(--mint)"></div></div><div class="bar-val">25%</div></div>
+        <div style="margin-bottom:12px;font-size:11px;color:var(--text3);font-weight:500">AMBOS (HÍBRIDO)</div>
+        <div class="bar-row"><div class="bar-label" style="width:120px"><span class="gen gen-z">Gen Z</span></div><div class="bar-track"><div class="bar-fill" style="width:31%;background:rgba(168,200,248,.4)"></div></div><div class="bar-val">31%</div></div>
+        <div class="bar-row"><div class="bar-label" style="width:120px"><span class="gen gen-m">Millennials</span></div><div class="bar-track"><div class="bar-fill" style="width:12%;background:rgba(244,184,212,.4)"></div></div><div class="bar-val">12%</div></div>
+        <div class="bar-row"><div class="bar-label" style="width:120px"><span class="gen gen-x">Gen X/B.</span></div><div class="bar-track"><div class="bar-fill" style="width:75%;background:rgba(168,232,212,.4)"></div></div><div class="bar-val">75%</div></div>
+      </div>
+      <div class="insight pink">Dos <strong>53 on-demand</strong>: <span class="hlp">37 Gen Z (70%)</span>, 14 Millennials (26%), 2 Gen X/B. (4%). Hipótese Gen Z on-demand <em>confirmada parcialmente</em> — Millennials são até mais on-demand proporcionalmente.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Q3 + Q4 -->
+<div class="section">
+  <div class="sec-label">Q3 & Q4 · Conhecimento sobre TV 3.0 e early adopters</div>
+  <div class="grid g2">
+    <div class="card">
+      <div class="card-title">% que "nunca ouviu falar" por geração — Q3</div>
+      <div class="cw" style="height:180px"><canvas id="q3" role="img" aria-label="Percentual que nunca ouviu falar"></canvas></div>
+      <div class="insight">Desconhecimento <em>cresce com a idade</em>: <strong>Gen Z 44%</strong> vs Millennials 53% vs Gen X/B. 63%. A exposição digital da Gen Z reduz o gap — mas quase metade ainda nunca ouviu falar.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Quem conhece bem a TV 3.0 (n=18) — Q4</div>
+      <div class="cw" style="height:180px"><canvas id="q4" role="img" aria-label="Distribuição dos 18 que conhecem bem"></canvas></div>
+      <div class="legend" id="l4"></div>
+      <div class="insight"><span class="hl">83% dos "early knowers" são Gen Z</span> (15/18). Early adopters confirmados. Apesar disso, representam apenas 28% da própria geração — o potencial de crescimento é enorme.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Q5 -->
+<div class="section">
+  <div class="sec-label">Q5 · Canais de descoberta por geração</div>
+  <div class="card">
+    <div class="card-title">Como cada geração ficou sabendo sobre TV 3.0</div>
+    <div class="cw" style="height:220px"><canvas id="q5" role="img" aria-label="Canais de descoberta por geração"></canvas></div>
+    <div class="insight">📱 <strong>Redes sociais e internet empatados para Gen Z</strong> (10 cada). Millennials concentram em redes sociais (6). Gen X/B. chegam pela <em>TV</em>. Conclusão direta: para atingir a Gen Z, o canal é <strong>100% digital</strong>.</div>
+  </div>
+</div>
+
+<!-- Q6 -->
+<div class="section">
+  <div class="sec-label">Q6 · Interesse em migrar para TV 3.0 por geração</div>
+  <div class="grid g2">
+    <div class="card">
+      <div class="card-title">Distribuição do interesse</div>
+      <div class="cw" style="height:210px"><canvas id="q6" role="img" aria-label="Interesse por geração"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Percentual por geração</div>
+      <table class="cross">
+        <tr><th>Nível de interesse</th><th>Gen Z</th><th>Millennial</th><th>Gen X/B.</th></tr>
+        <tr><td>Muito interessado</td><td class="hi">7%</td><td class="lo">0%</td><td class="lo">0%</td></tr>
+        <tr><td>Interessado</td><td class="mid">37%</td><td class="mid">41%</td><td class="lo">25%</td></tr>
+        <tr><td>Indiferente</td><td>46%</td><td>35%</td><td>63%</td></tr>
+        <tr><td>Pouco interessado</td><td class="lo">7%</td><td class="lo">12%</td><td class="lo">13%</td></tr>
+        <tr><td>Nada interessado</td><td class="lo">2%</td><td class="lo">12%</td><td class="lo">0%</td></tr>
+      </table>
+      <div class="insight">O padrão total <em>se mantém na Gen Z</em>. Millennials surpreendem com mais "nada interessado" (12%). Gen X/B. é a mais indiferente (63%).</div>
+    </div>
+  </div>
+</div>
+
+<!-- Q7 -->
+<div class="section">
+  <div class="sec-label">Q7 · Barreiras por geração</div>
+  <div class="grid g3">
+    <div class="card">
+      <div class="card-title"><span class="gen gen-z">Gen Z</span> — barreiras</div>
+      <div class="bar-row"><div class="bar-label" style="width:130px">Falta de interesse</div><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--blue)"></div></div><div class="bar-val">17</div></div>
+      <div class="bar-row"><div class="bar-label" style="width:130px">Falta conhecimento</div><div class="bar-track"><div class="bar-fill" style="width:88%;background:rgba(168,200,248,.7)"></div></div><div class="bar-val">15</div></div>
+      <div class="bar-row"><div class="bar-label" style="width:130px">Custo</div><div class="bar-track"><div class="bar-fill" style="width:70%;background:rgba(168,200,248,.45)"></div></div><div class="bar-val">12</div></div>
+      <div class="bar-row"><div class="bar-label" style="width:130px">Dificuldade de uso</div><div class="bar-track"><div class="bar-fill" style="width:35%;background:rgba(168,200,248,.25)"></div></div><div class="bar-val">6</div></div>
+      <div class="bar-row"><div class="bar-label" style="width:130px">Pref. TV tradicional</div><div class="bar-track"><div class="bar-fill" style="width:24%;background:rgba(168,200,248,.15)"></div></div><div class="bar-val">4</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="gen gen-m">Millennials</span> — barreiras</div>
+      <div class="bar-row"><div class="bar-label" style="width:130px">Falta de interesse</div><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--pink)"></div></div><div class="bar-val">7</div></div>
+      <div class="bar-row"><div class="bar-label" style="width:130px">Custo</div><div class="bar-track"><div class="bar-fill" style="width:57%;background:rgba(244,184,212,.7)"></div></div><div class="bar-val">4</div></div>
+      <div class="bar-row"><div class="bar-label" style="width:130px">Dificuldade de uso</div><div class="bar-track"><div class="bar-fill" style="width:43%;background:rgba(244,184,212,.45)"></div></div><div class="bar-val">3</div></div>
+      <div class="bar-row"><div class="bar-label" style="width:130px">Falta conhecimento</div><div class="bar-track"><div class="bar-fill" style="width:29%;background:rgba(244,184,212,.25)"></div></div><div class="bar-val">2</div></div>
+      <div class="bar-row"><div class="bar-label" style="width:130px">Pref. TV tradicional</div><div class="bar-track"><div class="bar-fill" style="width:14%;background:rgba(244,184,212,.15)"></div></div><div class="bar-val">1</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="gen gen-x">Gen X/Boomer</span> — barreiras</div>
+      <div class="bar-row"><div class="bar-label" style="width:130px">Falta conhecimento</div><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--mint)"></div></div><div class="bar-val">3</div></div>
+      <div class="bar-row"><div class="bar-label" style="width:130px">Falta de interesse</div><div class="bar-track"><div class="bar-fill" style="width:67%;background:rgba(168,232,212,.7)"></div></div><div class="bar-val">2</div></div>
+      <div class="bar-row"><div class="bar-label" style="width:130px">Custo</div><div class="bar-track"><div class="bar-fill" style="width:33%;background:rgba(168,232,212,.4)"></div></div><div class="bar-val">1</div></div>
+      <div class="bar-row"><div class="bar-label" style="width:130px">Pref. TV tradicional</div><div class="bar-track"><div class="bar-fill" style="width:33%;background:rgba(168,232,212,.4)"></div></div><div class="bar-val">1</div></div>
+      <div class="bar-row"><div class="bar-label" style="width:130px">Dificuldade de uso</div><div class="bar-track"><div class="bar-fill" style="width:33%;background:rgba(168,232,212,.4)"></div></div><div class="bar-val">1</div></div>
+    </div>
+  </div>
+  <div class="insight" style="margin-top:0">⚠️ <strong>Hipótese parcialmente confirmada:</strong> Gen Z lidera "interesse + conhecimento" como barreiras — mas <em>custo aparece forte (12)</em>, acima do esperado. Millennials surpreendem com mais "custo e dificuldade de uso". Gen X/B.: "conhecimento" é barreira #1, não "preferência pela TV".</div>
+</div>
+
+<!-- Q8 -->
+<div class="section">
+  <div class="sec-label">Q8 · Conhecimento × intenção de adoção — valida investimento em educação</div>
+  <div class="grid g2">
+    <div class="card">
+      <div class="card-title">Amostra total</div>
+      <table class="cross">
+        <tr><th>Conhecimento</th><th>Sim</th><th>Talvez</th><th>Não</th><th>Taxa "Sim"</th></tr>
+        <tr><td>Sei bem o que é</td><td class="hi">12</td><td>5</td><td>1</td><td class="hi">67%</td></tr>
+        <tr><td>Já ouvi, mas não sei</td><td class="mid">10</td><td>12</td><td>1</td><td class="mid">43%</td></tr>
+        <tr><td>Nunca ouvi falar</td><td>8</td><td>28</td><td>2</td><td class="lo">21%</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">Apenas Gen Z</div>
+      <table class="cross">
+        <tr><th>Conhecimento</th><th>Sim</th><th>Talvez</th><th>Não</th><th>Taxa "Sim"</th></tr>
+        <tr><td>Sei bem o que é</td><td class="hi">10</td><td>4</td><td>1</td><td class="hi">67%</td></tr>
+        <tr><td>Já ouvi, mas não sei</td><td class="mid">7</td><td>7</td><td>1</td><td class="mid">47%</td></tr>
+        <tr><td>Nunca ouvi falar</td><td>5</td><td>17</td><td>2</td><td class="lo">21%</td></tr>
+      </table>
+      <div class="insight"><span class="hl">3× mais conversão</span> entre quem conhece bem (67%) vs nunca ouviu (21%). Padrão idêntico na Gen Z. ✅ <strong>Educação de mercado é o alavancador mais direto de adoção.</strong></div>
+    </div>
+  </div>
+</div>
+
+<!-- Q9+Q10 -->
+<div class="section">
+  <div class="sec-label">Q9 & Q10 · Funcionalidades mais valorizadas — pacote mínimo (MVP)</div>
+  <div class="card">
+    <div class="card-title">% de cada geração que marcou cada funcionalidade (múltipla escolha)</div>
+    <div class="cw" style="height:260px"><canvas id="q9" role="img" aria-label="Funcionalidades por geração"></canvas></div>
+    <div class="insight pink" style="margin-top:12px"><strong>Pacote mínimo Gen Z (MVP):</strong> <span class="hlp">Assistir quando quiser 67%</span> + <span class="hlp">Melhor qualidade 52%</span> + <span class="hlp">Recomendações 41%</span>. Essas 3 são marcadas pela maioria e orientam diretamente a priorização de features.</div>
+  </div>
+</div>
+
+<!-- Q11 FUNIL -->
+<div class="section">
+  <div class="sec-label">Q11 · Funil de conversão da Gen Z</div>
+  <div class="card">
+    <div class="card-title">Consciência → interesse → intenção de adoção (n=54)</div>
+    <div class="funnel" style="margin-top:14px">
+      <div class="funnel-step">
+        <div class="funnel-n">54</div>
+        <div class="funnel-pct">100%</div>
+        <div class="funnel-lbl">Total<br>Gen Z</div>
+        <div class="funnel-arrow">›</div>
+      </div>
+      <div class="funnel-step" style="border-color:rgba(168,200,248,.2)">
+        <div class="funnel-n" style="color:var(--blue)">30</div>
+        <div class="funnel-pct">56%</div>
+        <div class="funnel-lbl">Têm algum<br>conhecimento</div>
+        <div class="funnel-arrow">›</div>
+      </div>
+      <div class="funnel-step" style="border-color:rgba(244,184,212,.2)">
+        <div class="funnel-n" style="color:var(--pink)">24</div>
+        <div class="funnel-pct">44%</div>
+        <div class="funnel-lbl">Interessados<br>ou muito</div>
+        <div class="funnel-arrow">›</div>
+      </div>
+      <div class="funnel-step" style="border-color:rgba(168,232,212,.2)">
+        <div class="funnel-n" style="color:var(--mint)">22</div>
+        <div class="funnel-pct">41%</div>
+        <div class="funnel-lbl">Substituiriam<br>("Sim")</div>
+        <div class="funnel-arrow">›</div>
+      </div>
+      <div class="funnel-step" style="border-color:rgba(168,232,212,.3);background:rgba(168,232,212,.06)">
+        <div class="funnel-n" style="color:var(--mint)">50</div>
+        <div class="funnel-pct" style="color:var(--mint)">93%</div>
+        <div class="funnel-lbl">Sim ou<br>talvez</div>
+      </div>
+    </div>
+    <div class="insight" style="margin-top:14px">📊 <strong>Maior gargalo = topo do funil:</strong> 44% da Gen Z nunca ouviu falar. Entre os que conhecem, a conversão é alta. Com comunicação eficaz, <span class="hl">93% não descartam a adoção</span> — o produto não é o problema, a visibilidade é.</div>
+  </div>
+</div>
+
+<!-- Q12 -->
+<div class="section">
+  <div class="sec-label">Q12 · Indiferentes — desinteresse estrutural ou desconhecimento reversível?</div>
+  <div class="grid g2">
+    <div class="card">
+      <div class="card-title">Barreiras dos 36 "indiferentes" (total)</div>
+      <div class="bar-row"><div class="bar-label" style="width:150px">Falta de interesse</div><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--pink)"></div></div><div class="bar-val">14</div></div>
+      <div class="bar-row"><div class="bar-label" style="width:150px">Falta de conhecimento</div><div class="bar-track"><div class="bar-fill" style="width:93%;background:var(--blue)"></div></div><div class="bar-val">13</div></div>
+      <div class="bar-row"><div class="bar-label" style="width:150px">Dificuldade de uso</div><div class="bar-track"><div class="bar-fill" style="width:36%;background:rgba(255,255,255,.2)"></div></div><div class="bar-val">5</div></div>
+      <div class="bar-row"><div class="bar-label" style="width:150px">Custo</div><div class="bar-track"><div class="bar-fill" style="width:21%;background:rgba(255,255,255,.15)"></div></div><div class="bar-val">3</div></div>
+      <div class="bar-row"><div class="bar-label" style="width:150px">Pref. TV tradicional</div><div class="bar-track"><div class="bar-fill" style="width:7%;background:rgba(255,255,255,.1)"></div></div><div class="bar-val">1</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Barreiras dos 25 Gen Z "indiferentes"</div>
+      <div class="bar-row"><div class="bar-label" style="width:150px">Falta de interesse</div><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--pink)"></div></div><div class="bar-val">10</div></div>
+      <div class="bar-row"><div class="bar-label" style="width:150px">Falta de conhecimento</div><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--blue)"></div></div><div class="bar-val">10</div></div>
+      <div class="bar-row"><div class="bar-label" style="width:150px">Dificuldade de uso</div><div class="bar-track"><div class="bar-fill" style="width:30%;background:rgba(255,255,255,.2)"></div></div><div class="bar-val">3</div></div>
+      <div class="bar-row"><div class="bar-label" style="width:150px">Custo</div><div class="bar-track"><div class="bar-fill" style="width:10%;background:rgba(255,255,255,.15)"></div></div><div class="bar-val">1</div></div>
+      <div class="bar-row"><div class="bar-label" style="width:150px">Pref. TV tradicional</div><div class="bar-track"><div class="bar-fill" style="width:10%;background:rgba(255,255,255,.1)"></div></div><div class="bar-val">1</div></div>
+      <div class="insight pink">🔑 <strong>Resultado crítico:</strong> Entre Gen Z indiferentes, "interesse" e "conhecimento" <span class="hlp">empatados em 10</span>. <strong>Metade da indiferença é solucionável com comunicação.</strong> A outra metade é desinteresse estrutural — mais difícil de reverter.</div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+const BL='#a8c8f8', BL2='rgba(168,200,248,.45)', BL3='rgba(168,200,248,.2)';
+const PK='#f4b8d4', PK2='rgba(244,184,212,.45)', PK3='rgba(244,184,212,.2)';
+const MT='#a8e8d4', MT2='rgba(168,232,212,.45)', MT3='rgba(168,232,212,.2)';
+const G1='rgba(255,255,255,.25)', G2='rgba(255,255,255,.12)', G3='rgba(255,255,255,.06)';
+
+Chart.defaults.color='#8890a4';
+Chart.defaults.borderColor='rgba(255,255,255,0.06)';
+
+function mkLeg(id,labels,colors,vals){
+  const el=document.getElementById(id);if(!el)return;
+  el.innerHTML=labels.map((l,i)=>`<span class="leg"><span class="leg-dot" style="background:${colors[i%colors.length]}"></span>${l}${vals?' · '+vals[i]:''}</span>`).join('');
+}
+
+function donut(id,labels,data,colors,legId){
+  new Chart(document.getElementById(id),{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${ctx.parsed}`}}},cutout:'62%'}});
+  if(legId)mkLeg(legId,labels,colors,data);
+}
+
+// Q1
+donut('q1z',['Raramente','Algumas vezes','Nunca','Todos os dias'],[33,10,6,5],[BL,BL2,BL3,G2],'l1z');
+donut('q1m',['Raramente','Algumas vezes','Nunca'],[10,4,3],[PK,PK2,PK3],'l1m');
+donut('q1o',['Algumas vezes','Nunca','Todos os dias'],[4,2,2],[MT,MT2,MT3],'l1o');
+
+// Q2
+new Chart(document.getElementById('q2'),{type:'bar',data:{labels:['Sob demanda','Ambos','Ao vivo'],datasets:[{label:'Gen Z',data:[37,17,0],backgroundColor:BL},{label:'Millennials',data:[14,2,1],backgroundColor:PK},{label:'Gen X/B.',data:[2,6,0],backgroundColor:MT}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top',labels:{color:'#8890a4',boxWidth:10,boxHeight:10,padding:14}}},scales:{x:{ticks:{color:'#8890a4'},grid:{color:'rgba(255,255,255,.04)'}},y:{beginAtZero:true,ticks:{color:'#8890a4',stepSize:5},grid:{color:'rgba(255,255,255,.04)'}}}}});
+
+// Q3
+new Chart(document.getElementById('q3'),{type:'bar',data:{labels:['Gen Z','Millennials','Gen X/B.'],datasets:[{label:'% nunca ouviu falar',data:[44,53,63],backgroundColor:[BL,PK,MT]}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.x}%`}}},scales:{x:{beginAtZero:true,max:100,ticks:{color:'#8890a4',callback:v=>v+'%'},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#8890a4'},grid:{display:false}}}}});
+
+// Q4
+donut('q4',['Gen Z (15)','Gen X/B. (2)','Millennial (1)'],[15,2,1],[BL,MT,PK],'l4');
+
+// Q5
+new Chart(document.getElementById('q5'),{type:'bar',data:{labels:['Redes sociais','Internet','Amigos/Família','Jornal/Notícias','TV'],datasets:[{label:'Gen Z',data:[10,10,6,3,2],backgroundColor:BL},{label:'Millennials',data:[6,2,0,0,0],backgroundColor:PK},{label:'Gen X/B.',data:[0,1,0,0,2],backgroundColor:MT}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top',labels:{color:'#8890a4',boxWidth:10,boxHeight:10,padding:14}}},scales:{x:{ticks:{color:'#8890a4'},grid:{color:'rgba(255,255,255,.04)'}},y:{beginAtZero:true,ticks:{color:'#8890a4',stepSize:2},grid:{color:'rgba(255,255,255,.04)'}}}}});
+
+// Q6
+new Chart(document.getElementById('q6'),{type:'bar',data:{labels:['Muito int.','Interessado','Indiferente','Pouco int.','Nada int.'],datasets:[{label:'Gen Z',data:[4,20,25,4,1],backgroundColor:BL},{label:'Millennials',data:[0,7,6,2,2],backgroundColor:PK},{label:'Gen X/B.',data:[0,2,5,1,0],backgroundColor:MT}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top',labels:{color:'#8890a4',boxWidth:10,boxHeight:10,padding:14}}},scales:{x:{ticks:{color:'#8890a4'},grid:{color:'rgba(255,255,255,.04)'}},y:{beginAtZero:true,ticks:{color:'#8890a4',stepSize:2},grid:{color:'rgba(255,255,255,.04)'}}}}});
+
+// Q9
+const gz=54,ml=17,ox=8;
+new Chart(document.getElementById('q9'),{type:'bar',data:{labels:['Assistir quando quiser','Qualidade imagem/som','Rec. personalizadas','Interagir c/ programas','Comprar pela TV'],datasets:[{label:'Gen Z %',data:[Math.round(36/gz*100),Math.round(28/gz*100),Math.round(22/gz*100),Math.round(21/gz*100),Math.round(8/gz*100)],backgroundColor:BL},{label:'Millennials %',data:[Math.round(13/ml*100),Math.round(10/ml*100),Math.round(7/ml*100),Math.round(6/ml*100),Math.round(4/ml*100)],backgroundColor:PK},{label:'Gen X/B. %',data:[Math.round(5/ox*100),Math.round(3/ox*100),0,Math.round(4/ox*100),Math.round(1/ox*100)],backgroundColor:MT}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top',labels:{color:'#8890a4',boxWidth:10,boxHeight:10,padding:14}},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y}%`}}},scales:{x:{ticks:{color:'#8890a4'},grid:{color:'rgba(255,255,255,.04)'}},y:{beginAtZero:true,max:100,ticks:{color:'#8890a4',callback:v=>v+'%'},grid:{color:'rgba(255,255,255,.04)'}}}}});
+</script>
+</body>
+</html>
